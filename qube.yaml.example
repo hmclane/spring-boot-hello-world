@@ -17,10 +17,22 @@ endpoint:
 variables:
   - name: APP_VERSION
     value: v0.1
+  - name: supportFortify
+    value: true
 build:
   compile:
+    actions:
+     - mvn package
     publish:
      - target/
+  static_code_analysis:
+    actions:
+      - /opt/fortify/bin/fortify-java-analyzer.sh
+      - /opt/fortify/bin/fortify-result-analyzer.sh target/spring-boot-hello-world-1.0.0-SNAPSHOT.html 'High==0 && Critical==0' 'pass' target/fortify-summary.txt
+    publish:
+      - target/spring-boot-hello-world-1.0.0-SNAPSHOT.html:fortify-report-detail.html
+      - target/spring-boot-hello-world-1.0.0-SNAPSHOT.fpr
+      - target/fortify-summary.txt
 bake:
   skip: false
 test:
