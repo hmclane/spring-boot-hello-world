@@ -17,24 +17,39 @@ endpoint:
 variables:
   - name: APP_VERSION
     value: v0.1
+variables:
+  - name: APP_VERSION
+    value: v0.1
   - name: supportFortify
     value: true
+  - name: supportTwistlock
+    value: true    
+  - name: TWISTLOCK_ENDPOINT
+    optional: true
+    value: $(qubeship:endpoints:[isDefault.eq(false).and(type.eq('generic')).and(provider.eq('twistlock'))])
 build:
   compile:
     actions:
      - mvn package
     publish:
-     - target/
+     - target/spring-boot-hello-world-1.0-SNAPSHOT.jar
   static_code_analysis:
     actions:
       - /opt/fortify/bin/fortify-java-analyzer.sh
-      - /opt/fortify/bin/fortify-result-analyzer.sh target/spring-boot-hello-world-1.0.0-SNAPSHOT.html 'High==0 && Critical==0' 'pass' target/fortify-summary.txt
+      - /opt/fortify/bin/fortify-result-analyzer.sh target/spring-boot-hello-world-1.0-SNAPSHOT.html 'High==0 && Critical==0' 'pass' target/fortify-summary.txt
     publish:
-      - target/spring-boot-hello-world-1.0.0-SNAPSHOT.html:fortify-report-detail.html
-      - target/spring-boot-hello-world-1.0.0-SNAPSHOT.fpr
+      - target/spring-boot-hello-world-1.0-SNAPSHOT.html:fortify-report-detail.html
+      - target/spring-boot-hello-world-1.0-SNAPSHOT.fpr
       - target/fortify-summary.txt
 bake:
-  skip: false
+  image_scan:
+    actions:
+     - ls /opt
+     - ls /opt/twistlock
+     - /opt/twistlock/scan_image.sh $1
+     - /opt/twistlock/result-analyzer.sh twistlock 'high==0 && medium==0' 'pass' twistlock_report.txt
+    args:
+      - $(CONTAINER_NAME)
 test:
   skip: true
 deploy_to_qa:
