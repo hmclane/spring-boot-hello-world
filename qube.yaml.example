@@ -27,6 +27,17 @@ variables:
   - name: TWISTLOCK_ENDPOINT
     optional: true
     value: $(qubeship:endpoints:[isDefault.eq(false).and(type.eq('generic')).and(provider.eq('twistlock'))])
+  - name: supportOpenshift
+    value: true
+  - name: OPENSHIFT_DEPLOYMENT_COMPOSE_FILE
+    optional: false
+    value: docker-compose.yaml
+  - name: OPENSHIFT_DEPLOYMENT_SERVICE
+    optional: false
+    value: web
+  - name: target_openshift_cluster
+    optional: false
+    value: $(qubeship:endpoints:[type.eq('target').and(provider.eq('openshift'))])
 build:
   compile:
     actions:
@@ -44,16 +55,24 @@ build:
 bake:
   image_scan:
     actions:
-     - ls /opt
-     - ls /opt/twistlock
      - /opt/twistlock/scan_image.sh $1
      - /opt/twistlock/result-analyzer.sh twistlock 'high==0 && medium==0' 'pass' twistlock_report.txt
     args:
-      - $(CONTAINER_NAME)
-test:
-  skip: true
-deploy_to_qa:
-  skip: true
+      - $(QUBESHIP_IMAGE_ID)
+    publish:
+      - analysis.json
+      - files.json
 deploy_to_prod:
-  skip: false
-
+  release_to_prod:
+      actions:
+        - qube_utils/deployment_templates/openshift/qube_deploy_openshift.sh $1/$2:$3 $4 $5 $7 $8 $9
+      args:
+        - $(target_registry).additionalInfo.account
+        - $(CONTAINER_NAME)
+        - $(CONTAINER_TAG)
+        - $(target_openshift_cluster).additionalInfo.project
+        - $(QUBESHIP_RUN_ID)
+        - $(qubeship:env::BUILD_NUMBER)
+        - $(qubeship:env::WORKSPACE)
+        - $(OPENSHIFT_DEPLOYMENT_COMPOSE_FILE)
+        - $(OPENSHIFT_DEPLOYMENT_SERVICE)
